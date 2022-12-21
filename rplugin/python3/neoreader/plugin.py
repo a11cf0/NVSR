@@ -1,20 +1,29 @@
 import neovim
 import subprocess
+import tempfile
 from typing import List
 import enum
 import functools
 import ast
 import logging
 
+try:
+    from accessible_output2.outputs.auto import Auto
+    AO2 = Auto()
+except ImportError:
+    AO2 = None
+
 from .py_ast import PrettyReader
 
 # Logging config
 logger = logging.getLogger('neoreader')
-_handler = logging.FileHandler('/tmp/neoreader.log', 'a')
-_handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(_handler)
-logger.setLevel(logging.DEBUG)
+
+def setup_logger():
+    _handler = logging.FileHandler(tempfile.gettempdir() + 'neoreader.log', 'a+')
+    _handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(_handler)
+    logger.setLevel(logging.DEBUG)
 
 
 COMPARISONS =\
@@ -97,25 +106,32 @@ def requires_option(option):
 class Main(object):
     class Options(enum.Enum):
         ENABLE_AT_STARTUP = ('enable_at_startup', True)
-        INTERPRET_GENERIC_INFIX = ('interpet_generic_infix', True)
+        INTERPRET_GENERIC_INFIX = ('interpet_generic_infix', False)
         INTERPRET_HASKELL_INFIX = ('interpret_haskell_infix', False)
         SPEAK_BRACKETS = ('speak_brackets', False)
         SPEAK_KEYPRESSES = ('speak_keypresses', False)
         SPEAK_WORDS = ('speak_words', True)
-        SPEAK_MODE_TRANSITIONS = ('speak_mode_transitions', False)
-        SPEAK_COMPLETIONS = ('speak_completions', False)
+        SPEAK_MODE_TRANSITIONS = ('speak_mode_transitions', True)
+        SPEAK_COMPLETIONS = ('speak_completions', True)
         AUTO_SPEAK_LINE = ('auto_speak_line', True)
         INDENT_STATUS = ('speak_indent', False)
         PITCH_MULTIPLIER = ('pitch_multiplier', 1)
         SPEED = ('speak_speed', 350)
         USE_ESPEAK = ('use_espeak', False)
+        USE_AO2 = ('use_ao2', True)
         SPEAK_VOICE = ('speak_voice', '')
+        ENABLE_LOGGING = ('enable_logging', False)
 
     def __init__(self, vim):
         self.vim = vim
         self.last_spoken = ""
         self.enabled = self.get_option(self.Options.ENABLE_AT_STARTUP)
+        if self.get_option(self.Options.ENABLE_LOGGING):
+            setup_logger()
         self.literal_stack = []
+        self.vim.api.set_var('ignorecursorevent', False)
+        self.cursor_pos = self.vim.api.win_get_cursor(self.vim.current.window)
+        self.current_line = self.vim.current.line
 
     def get_option(self, option):
         name, default = option.value
@@ -154,7 +170,7 @@ class Main(object):
 
         return lines
 
-    def call_say(self, txt: str, speed=None, pitch=None, literal=False):
+    def call_say(self, txt: str, speed=None, pitch=None, literal=False, stop=True):
         voice = self.get_option(self.Options.SPEAK_VOICE)
 
         if self.get_option(self.Options.USE_ESPEAK):
@@ -168,6 +184,9 @@ class Main(object):
             if literal:
                 txt = " ".join(txt)
             args.append(txt)
+        elif self.get_option(self.Options.USE_AO2) and AO2:
+            AO2.output(txt, interrupt=stop)
+            return
         else:
             args = ["say"]
             if voice:
@@ -178,6 +197,8 @@ class Main(object):
                 args += ["-r", str(speed)]
             if literal:
                 txt = f"[[ char LTRL ]] {txt}"
+            if stop:
+                txt = f'{txt}, STOP.'
             args.append(txt)
 
         if self.enabled:
@@ -236,13 +257,7 @@ class Main(object):
 
             if indent_status:
                 txt = f"indent {index_level}, {txt}"
-            if txt.strip():
-                txt = f"{txt},"
-            if newline:
-                txt = f"{txt} newline"
-            if stop:
-                txt = f"{txt}, STOP."
-            self.call_say(txt, speed=speed, pitch=pitch_mod)
+            self.call_say(txt, speed=speed, pitch=pitch_mod, stop=stop)
 
     def explain(self, code: str, line=True) -> str:
         try:
@@ -264,7 +279,7 @@ class Main(object):
     @neovim.command('SpeakLine')
     def cmd_speak_line(self):
         current = self.vim.current.line
-        self.speak(current, newline=True)
+        self.speak(current)
 
     @neovim.command('SpeakLineDetail')
     def cmd_speak_line_detail(self):
@@ -322,16 +337,33 @@ class Main(object):
             speed=200
         )
 
-    @neovim.autocmd('CursorMoved')
+    @neovim.autocmd('CursorMoved', eval=r"[getline('.'), getcursorcharpos()]")
+    @neovim.autocmd('CursorMovedI', eval=r"[getline('.'), getcursorcharpos()]")
     @requires_option(Options.AUTO_SPEAK_LINE)
-    def handle_cursor_moved(self):
-        current = self.vim.current.line
-        if current == self.last_spoken:
-            # FIXME: Dirty hack. Should rather figure out whether changing lines
-            pass
+    def handle_cursor_moved(self, data):
+        if self.vim.api.get_var('ignorecursorevent'):
+            self.vim.api.set_var('ignorecursorevent', False)
+            return
+        line, pos = data
+        orow, ocol = self.cursor_pos
+        oline = self.current_line
+        _, row, col, *_ = pos
+        char = self.vim.funcs.strcharpart(line, col - 1, 1)
+        if row == orow and line == oline:
+            text = char
         else:
-            self.last_spoken = current
-            self.speak(current, newline=True)
+            text = line
+        self.cursor_pos = (row, col)
+        self.current_line = line
+        self.speak(text, stop=True)
+
+    @neovim.autocmd('TextYankPost', eval=r"[v:event.operator, v:event.regcontents]", sync=True)
+    def handle_delete(self, data):
+        self.vim.api.set_var('ignorecursorevent', True)
+        operator, textlist = data
+        if operator == 'd':
+            text = str(textlist)
+            self.speak(text, stop=True)
 
     @neovim.autocmd('InsertEnter')
     @requires_option(Options.SPEAK_MODE_TRANSITIONS)
@@ -348,7 +380,6 @@ class Main(object):
         self.literal_stack = []
         if self.get_option(self.Options.SPEAK_KEYPRESSES):
             self.speak(word, literal=True, speed=700)
-
 
     @neovim.autocmd('InsertCharPre', eval='[v:char, getpos(".")]')
     def handle_insert_char(self, data):
