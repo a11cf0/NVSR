@@ -341,20 +341,23 @@ class Main(object):
     @neovim.autocmd('CursorMovedI', eval=r"[getline('.'), getcursorcharpos()]")
     @requires_option(Options.AUTO_SPEAK_LINE)
     def handle_cursor_moved(self, data):
+        ignore = False
         if self.vim.api.get_var('ignorecursorevent'):
+            ignore = True
             self.vim.api.set_var('ignorecursorevent', False)
-            return
         line, pos = data
         orow, ocol = self.cursor_pos
         oline = self.current_line
         _, row, col, *_ = pos
+        self.cursor_pos = (row, col)
+        self.current_line = line
+        if ignore:
+            return
         char = self.vim.funcs.strcharpart(line, col - 1, 1)
         if row == orow and line == oline:
             text = char
         else:
             text = line
-        self.cursor_pos = (row, col)
-        self.current_line = line
         self.speak(text, stop=True)
 
     @neovim.autocmd('TextYankPost', eval=r"[v:event.operator, v:event.regcontents]", sync=True)
