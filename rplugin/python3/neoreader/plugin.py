@@ -93,7 +93,7 @@ def requires_option(option):
 
 
 @neovim.plugin
-class Main(object):
+class Main():
     class Options(enum.Enum):
         ENABLE_AT_STARTUP = ("enable_at_startup", True)
         INTERPRET_GENERIC_INFIX = ("interpet_generic_infix", False)
@@ -119,9 +119,9 @@ class Main(object):
         if self.get_option(self.Options.ENABLE_LOGGING):
             setup_logger()
         self.literal_stack = []
-        self.vim.api.set_var("ignorecursorevent", False)
         self.cursor_pos = self.vim.api.win_get_cursor(self.vim.current.window)
         self.current_line = self.vim.current.line
+        self.ignore_next_cursor_event = False
         self.outvar = "nvsr_outvar"
 
     def get_option(self, option):
@@ -331,20 +331,15 @@ class Main(object):
         )
 
     @neovim.autocmd("CursorMoved", eval=r"[getline('.'), getcursorcharpos()]")
-    @neovim.autocmd("CursorMovedI", eval=r"[getline('.'), getcursorcharpos()]")
     @requires_option(Options.AUTO_SPEAK_LINE)
     def handle_cursor_moved(self, data):
-        ignore = False
-        if self.vim.api.get_var("ignorecursorevent"):
-            ignore = True
-            self.vim.api.set_var("ignorecursorevent", False)
         line, pos = data
         orow, ocol = self.cursor_pos
         oline = self.current_line
         _, row, col, *_ = pos
         self.cursor_pos = (row, col)
         self.current_line = line
-        if ignore:
+        if self.ignore_next_cursor_event:
             return
         char = self.vim.funcs.strcharpart(line, col - 1, 1)
         if row == orow and line == oline:
@@ -353,11 +348,16 @@ class Main(object):
             text = line
         self.speak(text, stop=True)
 
+    @neovim.autocmd("CursorMovedI", eval=r"[getline('.'), getcursorcharpos()]")
+    @requires_option(Options.AUTO_SPEAK_LINE)
+    def handle_cursor_moved_i(self, data):
+        self.handle_cursor_moved(data)
+
     @neovim.autocmd(
         "TextYankPost", eval=r"[v:event.operator, v:event.regcontents]", sync=True
     )
     def handle_delete(self, data):
-        self.vim.api.set_var("ignorecursorevent", True)
+        self.ignore_next_cursor_event = True
         operator, textlist = data
         if operator == "d":
             text = textlist[0]
@@ -382,15 +382,16 @@ class Main(object):
     @neovim.autocmd("InsertEnter")
     @requires_option(Options.SPEAK_MODE_TRANSITIONS)
     def handle_insert_enter(self):
-        self.speak("INSERT ON", stop=True)
+        self.speak("INSERT ON", stop=False)
 
     @neovim.autocmd("InsertLeave")
     @requires_option(Options.SPEAK_MODE_TRANSITIONS)
     def handle_insert_leave(self):
-        self.speak("INSERT OFF", stop=True)
+        self.speak("INSERT OFF", stop=False)
 
     @neovim.autocmd("InsertCharPre", eval='[v:char, getcursorcharpos(".")]')
     def handle_insert_char(self, data):
+        self.ignore_next_cursor_event = True
         speak_keypresses = self.get_option(self.Options.SPEAK_KEYPRESSES)
         speak_words = self.get_option(self.Options.SPEAK_WORDS)
         if not (speak_keypresses or speak_words):
