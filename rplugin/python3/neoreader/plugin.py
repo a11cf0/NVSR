@@ -1,5 +1,7 @@
 import neovim
 import subprocess
+import time
+import threading
 import tempfile
 from typing import List
 import enum
@@ -17,11 +19,11 @@ except ImportError:
 from .py_ast import PrettyReader
 
 # Logging config
-logger = logging.getLogger("nvsr")
+logger = logging.getLogger("neoreader")
 
 
 def setup_logger():
-    _handler = logging.FileHandler(tempfile.gettempdir() + "nvsr.log", "a+")
+    _handler = logging.FileHandler(tempfile.gettempdir() + "neoreader.log", "a+")
     _handler.setFormatter(
         logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
@@ -40,6 +42,8 @@ COMPARISONS = {
 }
 
 STANDARD = {",": ", comma, ", ".": ", dot, ", ":": ", colon, ", "\n": ", newline, "}
+
+SPACES = {" ": " space ", " ": " no-break space ", "\t": " tab "}
 
 BRACKET_PAIRINGS = {
     "(": ". open paren,",
@@ -113,6 +117,7 @@ class Main(object):
         SPEAK_MODE_TRANSITIONS = ("speak_mode_transitions", True)
         SPEAK_COMPLETIONS = ("speak_completions", True)
         AUTO_SPEAK_LINE = ("auto_speak_line", True)
+        AUTO_SPEAK_OUTPUT = ("auto_speak_output", True)
         INDENT_STATUS = ("speak_indent", False)
         PITCH_MULTIPLIER = ("pitch_multiplier", 1)
         SPEED = ("speak_speed", 350)
@@ -131,6 +136,7 @@ class Main(object):
         self.vim.api.set_var("ignorecursorevent", False)
         self.cursor_pos = self.vim.api.win_get_cursor(self.vim.current.window)
         self.current_line = self.vim.current.line
+        self.outvar = "nvsr_outvar"
 
     def get_option(self, option):
         name, default = option.value
@@ -253,6 +259,10 @@ class Main(object):
 
             if brackets:
                 for (target, replacement) in BRACKET_PAIRINGS.items():
+                    txt = txt.replace(target, f" {replacement} ")
+
+            if txt.isspace():
+                for (target, replacement) in SPACES.items():
                     txt = txt.replace(target, f" {replacement} ")
 
             if indent_status:
@@ -379,6 +389,22 @@ class Main(object):
             text = textlist[0]
             self.speak(text, stop=True)
 
+    @neovim.autocmd("CmdlineEnter")
+    @requires_option(Options.AUTO_SPEAK_OUTPUT)
+    def record_output(self):
+        var = self.outvar
+        self.vim.command(f":redir => {var}")
+
+    @neovim.autocmd("CmdlineLeave")
+    @requires_option(Options.AUTO_SPEAK_OUTPUT)
+    def speak_output(self):
+        var = self.outvar
+        self.vim.command(":redir END")
+        text = self.vim.api.get_var(var)
+        if text:
+            text = text.replace("\0", "\n").strip()
+            self.speak(text, stop=True)
+
     @neovim.autocmd("InsertEnter")
     @requires_option(Options.SPEAK_MODE_TRANSITIONS)
     def handle_insert_enter(self):
@@ -393,7 +419,7 @@ class Main(object):
         word = "".join(self.literal_stack)
         self.literal_stack = []
         if self.get_option(self.Options.SPEAK_KEYPRESSES):
-            self.speak(word, literal=True, speed=700)
+            self.speak(word)
 
     @neovim.autocmd("InsertCharPre", eval='[v:char, getpos(".")]')
     def handle_insert_char(self, data):
