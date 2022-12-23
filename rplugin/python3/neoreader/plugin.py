@@ -1,7 +1,6 @@
 import neovim
+import os
 import subprocess
-import time
-import threading
 import tempfile
 from typing import List
 import enum
@@ -23,7 +22,7 @@ logger = logging.getLogger("neoreader")
 
 
 def setup_logger():
-    _handler = logging.FileHandler(tempfile.gettempdir() + "neoreader.log", "a+")
+    _handler = logging.FileHandler(os.path.join(tempfile.gettempdir(), "neoreader.log"), "a+")
     _handler.setFormatter(
         logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
