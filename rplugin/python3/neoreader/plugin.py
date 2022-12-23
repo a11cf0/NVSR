@@ -1,5 +1,6 @@
 import neovim
 import os
+import re
 import subprocess
 import tempfile
 import enum
@@ -25,7 +26,9 @@ def setup_logger():
         os.path.join(tempfile.gettempdir(), "nvsr.log"), "a+"
     )
     _handler.setFormatter(
-        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )  # noqa
     )
     logger.addHandler(_handler)
     logger.setLevel(logging.DEBUG)
@@ -41,7 +44,12 @@ COMPARISONS = {
     " || ": "or",
 }
 
-STANDARD = {",": ", comma, ", ".": ", dot, ", ":": ", colon, ", "\n": ", newline, "}
+STANDARD = {
+    ",": ", comma, ",
+    ".": ", dot, ",
+    ":": ", colon, ",
+    "\n": ", newline, ",
+}
 
 SPACES = {" ": " space ", " ": " no-break space ", "\t": " tab "}
 
@@ -90,7 +98,7 @@ class Main(object):
         ENABLE_AT_STARTUP = ("enable_at_startup", True)
         INTERPRET_GENERIC_INFIX = ("interpet_generic_infix", False)
         SPEAK_BRACKETS = ("speak_brackets", False)
-        SPEAK_KEYPRESSES = ("speak_keypresses", False)
+        SPEAK_KEYPRESSES = ("speak_keypresses", True)
         SPEAK_WORDS = ("speak_words", True)
         SPEAK_MODE_TRANSITIONS = ("speak_mode_transitions", True)
         SPEAK_COMPLETIONS = ("speak_completions", True)
@@ -236,7 +244,7 @@ class Main(object):
                     txt = txt.replace(target, f" {replacement} ")
 
             if indent_status:
-                txt = f"indent {index_level}, {txt}"
+                txt = f"indent {indent_level}, {txt}"
             self.call_say(txt, speed=speed, pitch=pitch_mod, stop=stop)
 
     def explain(self, code: str, line=True) -> str:
@@ -381,33 +389,26 @@ class Main(object):
     def handle_insert_leave(self):
         self.speak("INSERT OFF", stop=True)
 
-    def flush_stack(self):
-        word = "".join(self.literal_stack)
-        self.literal_stack = []
-        if self.get_option(self.Options.SPEAK_KEYPRESSES):
-            self.speak(word)
-
-    @neovim.autocmd("InsertCharPre", eval='[v:char, getpos(".")]')
+    @neovim.autocmd("InsertCharPre", eval='[v:char, getcursorcharpos(".")]')
     def handle_insert_char(self, data):
-        inserted, pos = data
-        _, row, col, _ = pos
-        # row, col = self.vim.api.win_get_cursor(self.vim.current.window)
-        line = self.vim.current.line
-
-        self.literal_stack.append(inserted)
-
+        speak_keypresses = self.get_option(self.Options.SPEAK_KEYPRESSES)
         speak_words = self.get_option(self.Options.SPEAK_WORDS)
-
-        if inserted == " ":
-            self.flush_stack()
-
-            if speak_words:
-                # Inserted a space, say the last inserted word
-                start_of_word = line.rfind(" ", 0, len(line) - 1)
-                word = line[start_of_word + 1 : col]
-                self.speak(word, brackets=True, generic=False, stop=False)
-        elif len(self.literal_stack) > 3:
-            self.flush_stack()
+        if not (speak_keypresses or speak_words):
+            return
+        char, position = data
+        _, row, col, *_ = position
+        line = self.vim.current.line
+        last_word = None
+        if speak_words and re.match(r"\W", char):
+            if re.match(r"\w", line[col - 2]):
+                pre_line = line[:col]
+                pre_last_word = re.split(r"\W+", pre_line)
+                pre_last_word = list(filter(lambda w: bool(w), pre_last_word))
+                last_word = pre_last_word[-1]
+        if last_word is not None and len(last_word) > 0:
+            self.speak(last_word, stop=True)
+        if speak_keypresses:
+            self.speak(char, stop=False)
 
     @neovim.autocmd("CompleteDone", eval="v:completed_item")
     @requires_option(Options.SPEAK_COMPLETIONS)
