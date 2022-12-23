@@ -1,6 +1,7 @@
 # nvsr
 
-Nvsr is a screen reader for Neovim, cross-platform console text editor.
+Nvsr is a screen reader for Neovim, the best cross-platform console text editor.
+NVSR stands for NeoVim Screen Reader.
 Nvsr is a fully refactored and improved fork of [Neoreader](https://github.com/MaxwellBo/neoreader).
 
 ## Features
@@ -11,7 +12,7 @@ Nvsr is a fully refactored and improved fork of [Neoreader](https://github.com/M
 * Reads output of NeoVim's commands (with some limitations);
 * On Microsoft Windows uses either SAPI5 or your preffered screen reader;
 * On Linux uses speech-dispatcher;
-* On MacOS uses VoiceOver (we have plans to adopt it for usage without VoiceOver).
+* On MacOS uses VoiceOver (we have plans to adapt it for usage without VoiceOver).
 
 ## Requirements
 
@@ -29,7 +30,7 @@ You must be using Python 3.6 or newer.
 For [vim-plug](https://github.com/junegunn/vim-plug), add 
 
 ```vim
-Plug 'MaxwellBo/neoreader'
+Plug 'a11cf0/nvsr'
 ```
 
 to your configuration, and execute `:PlugInstall`.
@@ -74,3 +75,10 @@ let g:speak_voice = ''
 
 - [Lewis Bobbermen](https://github.com/lewisjb)
 - [Max Bo](https://github.com/MaxwellBo)
+
+## Backstory
+
+We have been trying to use many different Vi-like text editors for several years, and every time a new flavor of Vim appeared, we hoped that it would be more accessible for screen reader users.
+Some day we realized that Neovim is the most accessible one. So we started researching about how we could improve its usage with the NVDA screen reader.
+We found several verry useful config options, such as `:set noruler` or `:set eb` but they were still insufficient for best experience.
+Some day we found a plugin called "Neoreader, Neovim screenreader" and tried it only to realize that Neoreader is more of a prototype than a fully working screen reader. And so we decided to improve it, to fix bugs, add features and give it a new life.
