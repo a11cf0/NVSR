@@ -9,6 +9,7 @@ import logging
 
 try:
     from accessible_output2.outputs.auto import Auto
+
     AO2 = Auto()
 except ImportError:
     AO2 = None
@@ -16,79 +17,77 @@ except ImportError:
 from .py_ast import PrettyReader
 
 # Logging config
-logger = logging.getLogger('neoreader')
+logger = logging.getLogger("nvsr")
+
 
 def setup_logger():
-    _handler = logging.FileHandler(tempfile.gettempdir() + 'neoreader.log', 'a+')
-    _handler.setFormatter(logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    _handler = logging.FileHandler(tempfile.gettempdir() + "nvsr.log", "a+")
+    _handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
     logger.addHandler(_handler)
     logger.setLevel(logging.DEBUG)
 
 
-COMPARISONS =\
-    { " < "  : "less than"
-    , " > "  : "greater than"
-    , " >= " : "greater than or equal to"
-    , " <= " : "less than or equal to"
-    , " == " : "is equal to"
-    , " && " : "and"
-    , " || " : "or"
-    }
+COMPARISONS = {
+    " < ": "less than",
+    " > ": "greater than",
+    " >= ": "greater than or equal to",
+    " <= ": "less than or equal to",
+    " == ": "is equal to",
+    " && ": "and",
+    " || ": "or",
+}
 
-STANDARD =\
-    { ",": ", comma, "
-    , ".": ", dot, "
-    , ":": ", colon, "
-    , "\n": ", newline, "
-    }
+STANDARD = {",": ", comma, ", ".": ", dot, ", ":": ", colon, ", "\n": ", newline, "}
 
-BRACKET_PAIRINGS =\
-    { "(": ". open paren,"
-    , ")": ", close paren."
-    , "[": ". open bracket,"
-    , "]": ", close bracket."
-    , "{": ". open curly,"
-    , "}": ", close curly."
-    , "<": ". open angle,"
-    , ">": ", close angle."
-    }
+BRACKET_PAIRINGS = {
+    "(": ". open paren,",
+    ")": ", close paren.",
+    "[": ". open bracket,",
+    "]": ", close bracket.",
+    "{": ". open curly,",
+    "}": ", close curly.",
+    "<": ". open angle,",
+    ">": ", close angle.",
+}
 
-GENERIC_BIN_OPS =\
-    { "->": "stab"
-    , ">=>": "fish"
-    , "<=>": "spaceship"
-    , "=>": "fat arrow"
-    , "===": "triple equals"
-    , "++": "increment"
-    , "--": "decrement"
-    , "+=": "add with"
-    , "-=": "subtract with"
-    , "/=": "divide with"
-    , "*=": "multiply with"
-    , "?:": "elvis"
-    }
+GENERIC_BIN_OPS = {
+    "->": "stab",
+    ">=>": "fish",
+    "<=>": "spaceship",
+    "=>": "fat arrow",
+    "===": "triple equals",
+    "++": "increment",
+    "--": "decrement",
+    "+=": "add with",
+    "-=": "subtract with",
+    "/=": "divide with",
+    "*=": "multiply with",
+    "?:": "elvis",
+}
 
-HASKELL_BIN_OPS =\
-    { "<$>": "effmap"
-    , "<*>": "applic"
-    , "<$": "const map"
-    , "*>": "sequence right"
-    , "<*": "sequence left"
-    , ">>=": "and then"
-    , "=<<": "bind"
-    , "<=<": "kleisli compose"
-    , ">>": "sequence right"
-    , "<<": "sequence left"
-    , "()": "unit"
-    , "::": "of type"
-    , ":": "appended to"
-    , "&": "thread"
-    , "$": "apply"
-    , "<-": "bind"
-    , "->": "yields"
-    , ".": "compose"
-    }
+HASKELL_BIN_OPS = {
+    "<$>": "effmap",
+    "<*>": "applic",
+    "<$": "const map",
+    "*>": "sequence right",
+    "<*": "sequence left",
+    ">>=": "and then",
+    "=<<": "bind",
+    "<=<": "kleisli compose",
+    ">>": "sequence right",
+    "<<": "sequence left",
+    "()": "unit",
+    "::": "of type",
+    ":": "appended to",
+    "&": "thread",
+    "$": "apply",
+    "<-": "bind",
+    "->": "yields",
+    ".": "compose",
+}
+
 
 def requires_option(option):
     def decorator(fn):
@@ -105,22 +104,22 @@ def requires_option(option):
 @neovim.plugin
 class Main(object):
     class Options(enum.Enum):
-        ENABLE_AT_STARTUP = ('enable_at_startup', True)
-        INTERPRET_GENERIC_INFIX = ('interpet_generic_infix', False)
-        INTERPRET_HASKELL_INFIX = ('interpret_haskell_infix', False)
-        SPEAK_BRACKETS = ('speak_brackets', False)
-        SPEAK_KEYPRESSES = ('speak_keypresses', False)
-        SPEAK_WORDS = ('speak_words', True)
-        SPEAK_MODE_TRANSITIONS = ('speak_mode_transitions', True)
-        SPEAK_COMPLETIONS = ('speak_completions', True)
-        AUTO_SPEAK_LINE = ('auto_speak_line', True)
-        INDENT_STATUS = ('speak_indent', False)
-        PITCH_MULTIPLIER = ('pitch_multiplier', 1)
-        SPEED = ('speak_speed', 350)
-        USE_ESPEAK = ('use_espeak', False)
-        USE_AO2 = ('use_ao2', True)
-        SPEAK_VOICE = ('speak_voice', '')
-        ENABLE_LOGGING = ('enable_logging', False)
+        ENABLE_AT_STARTUP = ("enable_at_startup", True)
+        INTERPRET_GENERIC_INFIX = ("interpet_generic_infix", False)
+        INTERPRET_HASKELL_INFIX = ("interpret_haskell_infix", False)
+        SPEAK_BRACKETS = ("speak_brackets", False)
+        SPEAK_KEYPRESSES = ("speak_keypresses", False)
+        SPEAK_WORDS = ("speak_words", True)
+        SPEAK_MODE_TRANSITIONS = ("speak_mode_transitions", True)
+        SPEAK_COMPLETIONS = ("speak_completions", True)
+        AUTO_SPEAK_LINE = ("auto_speak_line", True)
+        INDENT_STATUS = ("speak_indent", False)
+        PITCH_MULTIPLIER = ("pitch_multiplier", 1)
+        SPEED = ("speak_speed", 350)
+        USE_ESPEAK = ("use_espeak", False)
+        USE_AO2 = ("use_ao2", True)
+        SPEAK_VOICE = ("speak_voice", "")
+        ENABLE_LOGGING = ("enable_logging", False)
 
     def __init__(self, vim):
         self.vim = vim
@@ -129,7 +128,7 @@ class Main(object):
         if self.get_option(self.Options.ENABLE_LOGGING):
             setup_logger()
         self.literal_stack = []
-        self.vim.api.set_var('ignorecursorevent', False)
+        self.vim.api.set_var("ignorecursorevent", False)
         self.cursor_pos = self.vim.api.win_get_cursor(self.vim.current.window)
         self.current_line = self.vim.current.line
 
@@ -151,14 +150,14 @@ class Main(object):
         leading_spaces = len(line) - len(line.lstrip())
 
         return leading_spaces // whitespaces
-        
+
     def get_current_selection(self) -> List[str]:
         """
         Returns the current highlighted selection
         """
         buf = self.vim.current.buffer
-        line_start, col_start = buf.mark('<')
-        line_end, col_end = buf.mark('>')
+        line_start, col_start = buf.mark("<")
+        line_end, col_end = buf.mark(">")
 
         lines = self.vim.api.buf_get_lines(buf, line_start - 1, line_end, True)
 
@@ -198,14 +197,15 @@ class Main(object):
             if literal:
                 txt = f"[[ char LTRL ]] {txt}"
             if stop:
-                txt = f'{txt}, STOP.'
+                txt = f"{txt}, STOP."
             args.append(txt)
 
         if self.enabled:
             logger.debug(f"Saying '{txt}'")
             subprocess.run(args)
 
-    def speak(self, 
+    def speak(
+        self,
         txt: str,
         brackets=None,
         generic=None,
@@ -215,8 +215,8 @@ class Main(object):
         indent_status=None,
         newline=False,
         literal=False,
-        stop=True
-        ):
+        stop=True,
+    ):
 
         if brackets is None:
             brackets = self.get_option(self.Options.SPEAK_BRACKETS)
@@ -233,7 +233,7 @@ class Main(object):
         if indent_status is None:
             indent_status = self.get_option(self.Options.INDENT_STATUS)
 
-        indent_level = self.get_indent_level(txt) 
+        indent_level = self.get_indent_level(txt)
         pitch_mod = indent_level * self.get_option(self.Options.PITCH_MULTIPLIER)
 
         if literal:
@@ -248,7 +248,7 @@ class Main(object):
                     txt = txt.replace(target, f" {replacement} ")
 
             if standard:
-                for (target, replacement) in { **STANDARD, **COMPARISONS }.items():
+                for (target, replacement) in {**STANDARD, **COMPARISONS}.items():
                     txt = txt.replace(target, f" {replacement} ")
 
             if brackets:
@@ -272,26 +272,32 @@ class Main(object):
 
         return explained
 
-    @neovim.function('Speak')
+    @neovim.function("Speak")
     def fn_speak(self, text):
         self.speak(text)
 
-    @neovim.command('SpeakLine')
+    @neovim.command("SpeakLine")
     def cmd_speak_line(self):
         current = self.vim.current.line
         self.speak(current)
 
-    @neovim.command('SpeakLineDetail')
+    @neovim.command("SpeakLineDetail")
     def cmd_speak_line_detail(self):
         current = self.vim.current.line
-        self.speak(current, brackets=True, generic=False, haskell=False, speed=self.get_option(self.Options.SPEED) - 100)
+        self.speak(
+            current,
+            brackets=True,
+            generic=False,
+            haskell=False,
+            speed=self.get_option(self.Options.SPEED) - 100,
+        )
 
-    @neovim.command('SpeakLineExplain')
+    @neovim.command("SpeakLineExplain")
     def cmd_speak_line_explain(self):
         current = self.vim.current.line.strip()
 
         explained = self.explain(current, line=False)
-     
+
         self.speak(
             explained,
             stop=True,
@@ -299,29 +305,32 @@ class Main(object):
             brackets=False,
             haskell=False,
             indent_status=False,
-            speed=200
+            speed=200,
         )
 
-    @neovim.command('SpeakRange', range=True)
+    @neovim.command("SpeakRange", range=True)
     def cmd_speak_range(self, line_range):
         for i in self.get_current_selection():
             self.speak(i)
 
-    @neovim.command('SpeakRangeDetail', range=True)
+    @neovim.command("SpeakRangeDetail", range=True)
     def cmd_speak_range_detail(self, line_range):
         for i in self.get_current_selection():
-            self.speak(i, brackets=True, generic=False, haskell=False, speed=self.get_option(self.Options.SPEED) - 100)
+            self.speak(
+                i,
+                brackets=True,
+                generic=False,
+                haskell=False,
+                speed=self.get_option(self.Options.SPEED) - 100,
+            )
 
-    @neovim.command('SpeakRangeExplain', range=True)
+    @neovim.command("SpeakRangeExplain", range=True)
     def cmd_explain_range(self, line_range):
         lines = self.get_current_selection()
         new_first_line = lines[0].lstrip()
         base_indent_level = len(lines[0]) - len(new_first_line)
 
-        new_lines = [
-            line[base_indent_level:]
-            for line in lines
-        ]
+        new_lines = [line[base_indent_level:] for line in lines]
 
         code = "\n".join(new_lines)
 
@@ -334,17 +343,17 @@ class Main(object):
             brackets=False,
             haskell=False,
             indent_status=False,
-            speed=200
+            speed=200,
         )
 
-    @neovim.autocmd('CursorMoved', eval=r"[getline('.'), getcursorcharpos()]")
-    @neovim.autocmd('CursorMovedI', eval=r"[getline('.'), getcursorcharpos()]")
+    @neovim.autocmd("CursorMoved", eval=r"[getline('.'), getcursorcharpos()]")
+    @neovim.autocmd("CursorMovedI", eval=r"[getline('.'), getcursorcharpos()]")
     @requires_option(Options.AUTO_SPEAK_LINE)
     def handle_cursor_moved(self, data):
         ignore = False
-        if self.vim.api.get_var('ignorecursorevent'):
+        if self.vim.api.get_var("ignorecursorevent"):
             ignore = True
-            self.vim.api.set_var('ignorecursorevent', False)
+            self.vim.api.set_var("ignorecursorevent", False)
         line, pos = data
         orow, ocol = self.cursor_pos
         oline = self.current_line
@@ -360,22 +369,24 @@ class Main(object):
             text = line
         self.speak(text, stop=True)
 
-    @neovim.autocmd('TextYankPost', eval=r"[v:event.operator, v:event.regcontents]", sync=True)
+    @neovim.autocmd(
+        "TextYankPost", eval=r"[v:event.operator, v:event.regcontents]", sync=True
+    )
     def handle_delete(self, data):
-        self.vim.api.set_var('ignorecursorevent', True)
+        self.vim.api.set_var("ignorecursorevent", True)
         operator, textlist = data
-        if operator == 'd':
-            text = str(textlist)
+        if operator == "d":
+            text = textlist[0]
             self.speak(text, stop=True)
 
-    @neovim.autocmd('InsertEnter')
+    @neovim.autocmd("InsertEnter")
     @requires_option(Options.SPEAK_MODE_TRANSITIONS)
     def handle_insert_enter(self):
         self.speak("INSERT ON", stop=True)
 
-    @neovim.autocmd('InsertLeave')
+    @neovim.autocmd("InsertLeave")
     @requires_option(Options.SPEAK_MODE_TRANSITIONS)
-    def handle_insert_leave(self): 
+    def handle_insert_leave(self):
         self.speak("INSERT OFF", stop=True)
 
     def flush_stack(self):
@@ -384,35 +395,37 @@ class Main(object):
         if self.get_option(self.Options.SPEAK_KEYPRESSES):
             self.speak(word, literal=True, speed=700)
 
-    @neovim.autocmd('InsertCharPre', eval='[v:char, getpos(".")]')
+    @neovim.autocmd("InsertCharPre", eval='[v:char, getpos(".")]')
     def handle_insert_char(self, data):
         inserted, pos = data
         _, row, col, _ = pos
-        #row, col = self.vim.api.win_get_cursor(self.vim.current.window)
+        # row, col = self.vim.api.win_get_cursor(self.vim.current.window)
         line = self.vim.current.line
 
         self.literal_stack.append(inserted)
 
         speak_words = self.get_option(self.Options.SPEAK_WORDS)
 
-        if inserted == ' ':
+        if inserted == " ":
             self.flush_stack()
 
-            if speak_words: 
+            if speak_words:
                 # Inserted a space, say the last inserted word
-                start_of_word = line.rfind(' ', 0, len(line) - 1)
-                word = line[start_of_word + 1:col]
-                self.speak(word, brackets=True, generic=False, haskell=False, stop=False)
+                start_of_word = line.rfind(" ", 0, len(line) - 1)
+                word = line[start_of_word + 1 : col]
+                self.speak(
+                    word, brackets=True, generic=False, haskell=False, stop=False
+                )
         elif len(self.literal_stack) > 3:
             self.flush_stack()
 
-    @neovim.autocmd('CompleteDone', eval='v:completed_item')
+    @neovim.autocmd("CompleteDone", eval="v:completed_item")
     @requires_option(Options.SPEAK_COMPLETIONS)
     def handle_complete_done(self, item):
         if not item:
             return
 
         if isinstance(item, dict):
-            item = item['word']
+            item = item["word"]
 
         self.speak(item)
