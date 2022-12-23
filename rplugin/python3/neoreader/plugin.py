@@ -2,7 +2,6 @@ import neovim
 import os
 import subprocess
 import tempfile
-from typing import List
 import enum
 import functools
 import ast
@@ -18,11 +17,13 @@ except ImportError:
 from .py_ast import PrettyReader
 
 # Logging config
-logger = logging.getLogger("neoreader")
+logger = logging.getLogger("nvsr")
 
 
 def setup_logger():
-    _handler = logging.FileHandler(os.path.join(tempfile.gettempdir(), "neoreader.log"), "a+")
+    _handler = logging.FileHandler(
+        os.path.join(tempfile.gettempdir(), "nvsr.log"), "a+"
+    )
     _handler.setFormatter(
         logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
@@ -45,14 +46,14 @@ STANDARD = {",": ", comma, ", ".": ", dot, ", ":": ", colon, ", "\n": ", newline
 SPACES = {" ": " space ", " ": " no-break space ", "\t": " tab "}
 
 BRACKET_PAIRINGS = {
-    "(": ". open paren,",
-    ")": ", close paren.",
-    "[": ". open bracket,",
-    "]": ", close bracket.",
-    "{": ". open curly,",
-    "}": ", close curly.",
-    "<": ". open angle,",
-    ">": ", close angle.",
+    "(": ", open paren, ",
+    ")": ", close paren, ",
+    "[": ", open bracket, ",
+    "]": ", close bracket, ",
+    "{": ", open curly, ",
+    "}": ", close curly, ",
+    "<": ", open angle, ",
+    ">": ", close angle, ",
 }
 
 GENERIC_BIN_OPS = {
@@ -68,27 +69,6 @@ GENERIC_BIN_OPS = {
     "/=": "divide with",
     "*=": "multiply with",
     "?:": "elvis",
-}
-
-HASKELL_BIN_OPS = {
-    "<$>": "effmap",
-    "<*>": "applic",
-    "<$": "const map",
-    "*>": "sequence right",
-    "<*": "sequence left",
-    ">>=": "and then",
-    "=<<": "bind",
-    "<=<": "kleisli compose",
-    ">>": "sequence right",
-    "<<": "sequence left",
-    "()": "unit",
-    "::": "of type",
-    ":": "appended to",
-    "&": "thread",
-    "$": "apply",
-    "<-": "bind",
-    "->": "yields",
-    ".": "compose",
 }
 
 
@@ -109,7 +89,6 @@ class Main(object):
     class Options(enum.Enum):
         ENABLE_AT_STARTUP = ("enable_at_startup", True)
         INTERPRET_GENERIC_INFIX = ("interpet_generic_infix", False)
-        INTERPRET_HASKELL_INFIX = ("interpret_haskell_infix", False)
         SPEAK_BRACKETS = ("speak_brackets", False)
         SPEAK_KEYPRESSES = ("speak_keypresses", False)
         SPEAK_WORDS = ("speak_words", True)
@@ -156,7 +135,7 @@ class Main(object):
 
         return leading_spaces // whitespaces
 
-    def get_current_selection(self) -> List[str]:
+    def get_current_selection(self) -> list[str]:
         """
         Returns the current highlighted selection
         """
@@ -214,7 +193,6 @@ class Main(object):
         txt: str,
         brackets=None,
         generic=None,
-        haskell=None,
         standard=True,
         speed=None,
         indent_status=None,
@@ -225,9 +203,6 @@ class Main(object):
 
         if brackets is None:
             brackets = self.get_option(self.Options.SPEAK_BRACKETS)
-
-        if haskell is None:
-            haskell = self.get_option(self.Options.INTERPRET_HASKELL_INFIX)
 
         if generic is None:
             generic = self.get_option(self.Options.INTERPRET_GENERIC_INFIX)
@@ -244,10 +219,6 @@ class Main(object):
         if literal:
             self.call_say(txt, speed=speed, literal=literal)
         else:
-            if haskell:
-                for (target, replacement) in HASKELL_BIN_OPS.items():
-                    txt = txt.replace(target, f" {replacement} ")
-
             if generic:
                 for (target, replacement) in GENERIC_BIN_OPS.items():
                     txt = txt.replace(target, f" {replacement} ")
@@ -297,7 +268,6 @@ class Main(object):
             current,
             brackets=True,
             generic=False,
-            haskell=False,
             speed=self.get_option(self.Options.SPEED) - 100,
         )
 
@@ -312,7 +282,6 @@ class Main(object):
             stop=True,
             standard=False,
             brackets=False,
-            haskell=False,
             indent_status=False,
             speed=200,
         )
@@ -329,7 +298,6 @@ class Main(object):
                 i,
                 brackets=True,
                 generic=False,
-                haskell=False,
                 speed=self.get_option(self.Options.SPEED) - 100,
             )
 
@@ -350,7 +318,6 @@ class Main(object):
             stop=True,
             standard=False,
             brackets=False,
-            haskell=False,
             indent_status=False,
             speed=200,
         )
@@ -438,9 +405,7 @@ class Main(object):
                 # Inserted a space, say the last inserted word
                 start_of_word = line.rfind(" ", 0, len(line) - 1)
                 word = line[start_of_word + 1 : col]
-                self.speak(
-                    word, brackets=True, generic=False, haskell=False, stop=False
-                )
+                self.speak(word, brackets=True, generic=False, stop=False)
         elif len(self.literal_stack) > 3:
             self.flush_stack()
 
