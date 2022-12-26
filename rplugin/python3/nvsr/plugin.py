@@ -344,6 +344,7 @@ class Main():
         self.cursor_pos = (row, col)
         self.current_line = line
         if self.ignore_next_cursor_event:
+            self.ignore_next_cursor_event = False
             return
         char = self.vim.funcs.strcharpart(line, col - 1, 1)
         if row == orow and line == oline:
