@@ -330,6 +330,10 @@ class Main():
             speed=200,
         )
 
+    @requires_option(Options.ENABLE_AT_STARTUP)
+    def handle_vim_enter(self):
+        self.speak("NVSR is ready", stop=True)
+
     @neovim.autocmd("CursorMoved", eval=r"[getline('.'), getcursorcharpos()]")
     @requires_option(Options.AUTO_SPEAK_LINE)
     def handle_cursor_moved(self, data):
