@@ -1,7 +1,6 @@
 import neovim
 import os
 import re
-import subprocess
 import tempfile
 import enum
 import functools
@@ -154,39 +153,9 @@ class Main:
         return lines
 
     def call_say(self, txt: str, speed=None, pitch=None, literal=False, stop=True):
-        voice = self.get_option(self.Options.SPEAK_VOICE)
-
-        if self.get_option(self.Options.USE_ESPEAK):
-            args = ["espeak"]
-            if voice:
-                args += ["-v", voice]
-            if pitch:
-                args += ["-p", str(pitch)]
-            if speed:
-                args += ["-s", str(speed)]
-            if literal:
-                txt = " ".join(txt)
-            args.append(txt)
-        elif self.get_option(self.Options.USE_AO2) and AO2:
+        if self.get_option(self.Options.USE_AO2) and AO2 is not None:
             AO2.output(txt, interrupt=stop)
             return
-        else:
-            args = ["say"]
-            if voice:
-                args += ["-v", voice]
-            if pitch:
-                txt = f"[[ pbas +{pitch}]] {txt}"
-            if speed:
-                args += ["-r", str(speed)]
-            if literal:
-                txt = f"[[ char LTRL ]] {txt}"
-            if stop:
-                txt = f"{txt}, STOP."
-            args.append(txt)
-
-        if self.enabled:
-            logger.debug(f"Saying '{txt}'")
-            subprocess.run(args)
 
     def speak(
         self,
@@ -197,7 +166,6 @@ class Main:
         speed=None,
         indent_status=None,
         newline=False,
-        literal=False,
         stop=True,
     ):
 
@@ -216,28 +184,25 @@ class Main:
         indent_level = self.get_indent_level(txt)
         pitch_mod = indent_level * self.get_option(self.Options.PITCH_MULTIPLIER)
 
-        if literal:
-            self.call_say(txt, speed=speed, literal=literal)
-        else:
-            if generic:
-                for (target, replacement) in GENERIC_BIN_OPS.items():
-                    txt = txt.replace(target, f" {replacement} ")
+        if generic:
+            for (target, replacement) in GENERIC_BIN_OPS.items():
+                txt = txt.replace(target, f" {replacement} ")
 
-            if standard:
-                for (target, replacement) in {**STANDARD, **COMPARISONS}.items():
-                    txt = txt.replace(target, f" {replacement} ")
+        if standard:
+            for (target, replacement) in {**STANDARD, **COMPARISONS}.items():
+                txt = txt.replace(target, f" {replacement} ")
 
-            if brackets:
-                for (target, replacement) in BRACKET_PAIRINGS.items():
-                    txt = txt.replace(target, f" {replacement} ")
+        if brackets:
+            for (target, replacement) in BRACKET_PAIRINGS.items():
+                txt = txt.replace(target, f" {replacement} ")
 
-            if txt.isspace():
-                for (target, replacement) in SPACES.items():
-                    txt = txt.replace(target, f" {replacement} ")
+        if txt.isspace():
+            for (target, replacement) in SPACES.items():
+                txt = txt.replace(target, f" {replacement} ")
 
-            if indent_status:
-                txt = f"indent {indent_level}, {txt}"
-            self.call_say(txt, speed=speed, pitch=pitch_mod, stop=stop)
+        if indent_status:
+            txt = f"indent {indent_level}, {txt}"
+        self.call_say(txt, speed=speed, pitch=pitch_mod, stop=stop)
 
     def explain(self, code: str, line=True) -> str:
         try:
