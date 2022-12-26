@@ -93,10 +93,10 @@ def requires_option(option):
 
 
 @neovim.plugin
-class Main():
+class Main:
     class Options(enum.Enum):
         ENABLE_AT_STARTUP = ("enable_at_startup", True)
-        INTERPRET_GENERIC_INFIX = ("interpet_generic_infix", False)
+        INTERPRET_GENERIC_INFIX = ("interpret_generic_infix", False)
         SPEAK_BRACKETS = ("speak_brackets", False)
         SPEAK_KEYPRESSES = ("speak_keypresses", True)
         SPEAK_WORDS = ("speak_words", True)
@@ -107,18 +107,15 @@ class Main():
         INDENT_STATUS = ("speak_indent", False)
         PITCH_MULTIPLIER = ("pitch_multiplier", 1)
         SPEED = ("speak_speed", 350)
-        USE_ESPEAK = ("use_espeak", False)
         USE_AO2 = ("use_ao2", True)
         SPEAK_VOICE = ("speak_voice", "")
         ENABLE_LOGGING = ("enable_logging", False)
 
     def __init__(self, vim):
         self.vim = vim
-        self.last_spoken = ""
         self.enabled = self.get_option(self.Options.ENABLE_AT_STARTUP)
         if self.get_option(self.Options.ENABLE_LOGGING):
             setup_logger()
-        self.literal_stack = []
         self.cursor_pos = self.vim.api.win_get_cursor(self.vim.current.window)
         self.current_line = self.vim.current.line
         self.ignore_next_cursor_event = False
@@ -138,9 +135,7 @@ class Main():
         whitespaces = 1
         if self.vim.api.get_option("expandtab"):
             whitespaces = self.vim.api.get_option("shiftwidth")
-
         leading_spaces = len(line) - len(line.lstrip())
-
         return leading_spaces // whitespaces
 
     def get_current_selection(self) -> list[str]:
@@ -150,15 +145,12 @@ class Main():
         buf = self.vim.current.buffer
         line_start, col_start = buf.mark("<")
         line_end, col_end = buf.mark(">")
-
         lines = self.vim.api.buf_get_lines(buf, line_start - 1, line_end, True)
-
         if len(lines) == 1:
             lines[0] = lines[0][col_start:col_end]
         else:
             lines[0] = lines[0][col_start:]
             lines[-1] = lines[-1][:col_end]
-
         return lines
 
     def call_say(self, txt: str, speed=None, pitch=None, literal=False, stop=True):
