@@ -121,6 +121,7 @@ class Main():
         self.literal_stack = []
         self.cursor_pos = self.vim.api.win_get_cursor(self.vim.current.window)
         self.current_line = self.vim.current.line
+        self.current_word = self.vim.funcs.expand("<cword>")
         self.ignore_next_cursor_event = False
         self.outvar = "nvsr_outvar"
 
@@ -338,20 +339,24 @@ class Main():
     @requires_option(Options.AUTO_SPEAK_LINE)
     def handle_cursor_moved(self, data):
         line, pos = data
+        word = self.vim.funcs.expand("<cword>")
         orow, ocol = self.cursor_pos
         oline = self.current_line
+        oword = self.current_word
         _, row, col, *_ = pos
         self.cursor_pos = (row, col)
         self.current_line = line
+        self.current_word = word
         if self.ignore_next_cursor_event:
             self.ignore_next_cursor_event = False
             return
         char = self.vim.funcs.strcharpart(line, col - 1, 1)
         if row == orow and line == oline:
-            text = char
+            if abs(col - ocol) != 1 and word != oword:
+                self.speak(word, stop=True)
+            self.speak(char, stop=False)
         else:
-            text = line
-        self.speak(text, stop=True)
+            self.speak(line, stop=True)
 
     @neovim.autocmd("CursorMovedI", eval=r"[getline('.'), getcursorcharpos()]")
     @requires_option(Options.AUTO_SPEAK_LINE)
