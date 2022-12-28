@@ -1,5 +1,6 @@
 import neovim
 
+import difflib
 import os
 import re
 import subprocess
@@ -338,7 +339,7 @@ class Main():
 
     @neovim.autocmd("CursorMoved", eval=r"[getline('.'), getcursorcharpos()]")
     @requires_option(Options.AUTO_SPEAK_LINE)
-    def handle_cursor_moved(self, data):
+    def handle_cursor_moved(self, data, insert=False):
         line, pos = data
         word = self.vim.funcs.expand("<cword>")
         orow, ocol = self.cursor_pos
@@ -358,13 +359,18 @@ class Main():
                 speak_word = True
                 self.speak(word, stop=True)
             self.speak(char, stop=(not speak_word))
+        elif insert and row == orow and len(line) < len(oline):
+            diff = list(difflib.ndiff(oline, line))
+            dellist = list(filter(lambda s: s.startswith('- '), diff))
+            deleted = ''.join([c[-1] for c in dellist])
+            self.speak(deleted, stop=True)
         else:
             self.speak(line, stop=True)
 
     @neovim.autocmd("CursorMovedI", eval=r"[getline('.'), getcursorcharpos()]")
     @requires_option(Options.AUTO_SPEAK_LINE)
     def handle_cursor_moved_i(self, data):
-        self.handle_cursor_moved(data)
+        self.handle_cursor_moved(data, insert=True)
 
     @neovim.autocmd(
         "TextYankPost", eval=r"[v:event.operator, v:event.regcontents]", sync=True
