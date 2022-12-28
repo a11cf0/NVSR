@@ -1,4 +1,5 @@
 import neovim
+
 import os
 import re
 import subprocess
@@ -351,10 +352,12 @@ class Main():
             self.ignore_next_cursor_event = False
             return
         char = self.vim.funcs.strcharpart(line, col - 1, 1)
+        speak_word = False
         if row == orow and line == oline:
             if abs(col - ocol) != 1 and word != oword:
+                speak_word = True
                 self.speak(word, stop=True)
-            self.speak(char, stop=False)
+            self.speak(char, stop=(not speak_word))
         else:
             self.speak(line, stop=True)
 
@@ -370,7 +373,7 @@ class Main():
         self.ignore_next_cursor_event = True
         operator, textlist = data
         if operator == "d":
-            text = textlist[0]
+            text = ' '.join(textlist)
             self.speak(text, stop=True)
 
     @neovim.autocmd("CmdlineEnter")
@@ -386,7 +389,7 @@ class Main():
         self.vim.command(":redir END")
         text = self.vim.api.get_var(var)
         if text:
-            text = text.replace("\0", "\n").strip()
+            text = text.replace("\0", " ").strip()
             self.speak(text, stop=True)
 
     @neovim.autocmd("InsertEnter")
