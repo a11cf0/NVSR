@@ -430,13 +430,26 @@ class Main():
         if speak_keypresses:
             self.speak(char, stop=False)
 
-    @neovim.autocmd("CompleteDone", eval="v:completed_item")
-    @requires_option(Options.SPEAK_COMPLETIONS)
-    def handle_complete_done(self, item):
+    def handle_complete(self, item, detailed=False):
         if not item:
             return
 
         if isinstance(item, dict):
-            item = item["word"]
+            word = item["word"]
+            extra = item.get("menu")
+            if detailed and extra:
+                item = f"{word} {extra}"
+            else:
+                item = word
 
         self.speak(item)
+
+    @neovim.autocmd("CompleteChanged", eval="v:event['completed_item']")
+    @requires_option(Options.SPEAK_COMPLETIONS)
+    def handle_complete_changed(self, item):
+        self.handle_complete(item, detailed=True)
+
+    @neovim.autocmd("CompleteDone", eval="v:completed_item")
+    @requires_option(Options.SPEAK_COMPLETIONS)
+    def handle_complete_done(self, item):
+        self.handle_complete(item)
