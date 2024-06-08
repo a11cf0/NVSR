@@ -27,7 +27,7 @@ You must be using Python 3.6 or newer.
 
 ## Installation
 
-For [vim-plug](https://github.com/junegunn/vim-plug), add 
+For [vim-plug](https://github.com/junegunn/vim-plug), add
 
 ```vim
 Plug 'a11cf0/nvsr'
@@ -65,6 +65,11 @@ let g:use_espeak = 0
 let g:use_ao2 = 1
 let g:speak_voice = ''
 ```
+
+## Development
+
+This repository contains a file of articles and documentation links that may be useful for further development.
+Check out this file [here](./neovim-documentation-links.md).
 
 ## Contributors
 
