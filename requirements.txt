@@ -1,0 +1,3 @@
+# We need this version of accessible_output2 because it has improved speech support on MacOS.
+git+https://github.com/cyrmax/accessible_output2
+pynvim
